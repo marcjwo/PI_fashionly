@@ -33,8 +33,10 @@ view: users {
       date,
       week,
       month,
+      month_name,
       quarter,
-      year
+      year,
+      day_of_month
     ]
     sql: ${TABLE}.created_at ;;
   }
@@ -77,6 +79,7 @@ view: users {
   dimension: traffic_source {
     type: string
     sql: ${TABLE}.traffic_source ;;
+    drill_fields: [gender,age_group]
   }
 
   dimension: zip {
@@ -88,4 +91,38 @@ view: users {
     type: count
     drill_fields: [id, last_name, first_name, order_items.count, events.count]
   }
+
+# ----- User additions -------------------
+
+  dimension: mtd  {
+    type: yesno
+    sql: ${created_day_of_month} <= EXTRACT(DAY FROM current_date()) ;;
+  }
+
+  dimension: age_group {
+    type: tier
+    tiers: [14,26,36,51,66]
+    style: integer
+    sql: ${age} ;;
+  }
+
+  dimension_group: since_signup {
+    type: duration
+    sql_start: ${created_date} ;;
+    sql_end: current_date() ;;
+  }
+
+  dimension:  new_customer {
+    type: yesno
+    sql: ${days_since_signup} <= 90 ;;
+  }
+
+  dimension: location {
+    type: location
+    sql_latitude: ${latitude} ;;
+    sql_longitude: ${longitude} ;;
+    drill_fields: [inventory_items.product_category, inventory_items.products_brand]
+  }
+
+
 }
