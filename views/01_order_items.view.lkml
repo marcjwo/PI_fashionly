@@ -22,6 +22,7 @@ view: order_items {
       year,
       day_of_month
     ]
+    convert_tz: no
     sql: ${TABLE}.created_at ;;
   }
 
@@ -108,12 +109,23 @@ view: order_items {
 
   # ----- User additions -------------------
 
+  measure: order_count {
+    type: count_distinct
+    sql: ${order_id} ;;
+  }
+
+  dimension: logo {
+    sql: ${inventory_items.product_brand_logo} ;;
+  }
+
   measure: total_sales {
     type: sum
     sql: ${sale_price} ;;
     description: "Total sales from items sold"
     value_format_name: usd
   }
+
+
 
   measure: average_sales_price {
     type: average
@@ -137,6 +149,14 @@ view: order_items {
     value_format_name: usd
   }
 
+  measure: average_gross_revenue {
+    type: average
+    sql: ${sale_price} ;;
+    filters: [status: "-Returned,-Cancelled"]
+    description: "average revenue from completed sales"
+    value_format_name: usd
+  }
+
   measure: total_gross_margin {
     type: number
     sql: ${total_gross_revenue} - ${total_cost} ;;
@@ -156,6 +176,40 @@ view: order_items {
     sql: ${total_gross_margin}/nullif(${total_gross_revenue},0) ;;
     value_format_name: percent_2
   }
+
+  measure: gross_margin_viz {
+    type: number
+    sql: ${total_gross_margin} ;;
+    # sql: ${total_gross_margin}/nullif(${total_gross_revenue},0) ;;
+    value_format_name: usd
+    html:
+      Total margin: {{rendered_value}}<br>
+      Total revenue: {{total_gross_revenue._rendered_value}}<br>
+      Margin percentage: {{gross_margin_percentage._rendered_value}}
+       ;;
+  }
+
+  # measure: gross_revenue_logo_viz {
+  #   type: number
+  #   sql: ${total_gross_revenue} ;;
+  #   label: "https://logo.clearbit.com/{{logo._value}}.com"
+  #   value_format_name: usd
+  #   # html: <img src = "https://logo.clearbit.com/{{logo._value}}.com" /> ;;
+  # }
+
+  # measure: gross_margin_logo {
+  #   type: number
+  #   sql: ${total_gross_margin} ;;
+  #   html: Total margin: {{rendered_value}}<br>
+  #   <img src = "http://www.google.com/s2/favicons?domain={{product_brand._value}}.com" /> ;;
+  # }
+
+  # measure: gross_margin_viz {
+  #   type: number
+  #   sql: ${total_gross_margin}/nullif(${total_gross_revenue},0) ;;
+  #   value_format_name: percent_2
+  #   # html: {{ rendered_value }} margin of {{ total_gross_revenue._rendered_value }} total product revenue!;;
+  # }
 
   # measure: gross_revenue_percentage {
   #   type: number
@@ -202,14 +256,14 @@ view: order_items {
 
   measure: user_return_rate {
     type: number
-    sql: ${customer_returning_items}/${number_of_users_with_orders} ;;
+    sql: ${customer_returning_items}/${count} ;;
     description: "Percentage of users with returns"
     value_format_name: percent_2
   }
 
   measure: average_spend_per_user {
     type: number
-    sql: ${total_sales}/${number_of_users_with_orders} ;;
+    sql: ${total_sales}/${count} ;;
     value_format_name: usd
     description: "Average spend per user"
   }
@@ -244,6 +298,51 @@ view: order_items {
     sql_start: ${users.created_date} ;;
     sql_end: ${created_date} ;;
   }
+
+  # dimension: order_age_cohort {
+  #   type: tier
+  #   tiers: [12,24,36]
+  #   style: integer
+  #   sql: ${months_order_to_signup} ;;
+  # }
+
+
+  measure: first_order {
+    type: date
+    sql: min(${created_raw});;
+  }
+
+  measure: latest_order {
+    type: date
+    sql: max(${created_raw}) ;;
+  }
+
+  dimension_group: shipping_time {
+    type: duration
+    intervals: [day]
+    sql_start: ${shipped_date} ;;
+    sql_end: ${delivered_date} ;;
+  }
+
+  measure: cumulative_lifetime_value {
+    type: running_total
+    sql: ${total_gross_revenue} ;;
+    value_format_name: usd
+  }
+
+
+  # measure: total_gross_revenue_this_brand {
+  #   type: sum
+  #   sql: ${total_gross_revenue} ;;
+  #   filters: [products.comparison: "(1)%"]
+  # }
+
+  # measure: brand_sales {
+  #   type: number
+  #   sql:
+  #   CASE WHEN ${products.brand_comparison} = "Comparable brands" THEN ${total_gross_revenue}/${products.count_brands} ELSE ${total_gross_revenue} END;;
+  #   value_format_name: usd
+  # }
 
 
   # ----- Sets of fields for drilling ------

@@ -12,6 +12,21 @@ view: products {
   dimension: brand {
     type: string
     sql: ${TABLE}.brand ;;
+    link: {
+      label: "Google"
+      url: "http://www.google.com/search?q={{ value }}"
+      icon_url: "https://www.google.com/s2/favicons?domain=google.com"
+    }
+    # link: {
+    #   label: "Google Encode Uri"
+    #   url: "http://www.google.com/search?q={{ value | encode_uri}}"
+    #   icon_url: "https://www.google.com/s2/favicons?domain=google.com"
+    # }
+    link: {
+      label: "Facebook"
+      url: "http://www.facebook.com/{{ value }}"
+      icon_url: "https://www.google.com/s2/favicons?domain=facebook.com"
+    }
   }
 
   dimension: category {
@@ -53,5 +68,64 @@ view: products {
   measure: count {
     type: count
     drill_fields: [id, name, distribution_centers.name, distribution_centers.id, inventory_items.count]
+  }
+
+#--- user additions
+
+  dimension: brand_cleansed {
+    # hidden: yes
+    type: string
+    sql: REPLACE(REPLACE(${brand}," ",""),"'","") ;;
+  }
+
+  dimension: brand_logo {
+    # type: string
+    sql: ${brand_cleansed} ;;
+    html: <img src = "https://logo.clearbit.com/{{brand_cleansed._value}}.com" /> ;;
+    # link: {
+    #   label: "{{value}} website"
+    #   url: "http://www.{{product_brand_cleansed._rendered_value}}.com"
+    #   icon_url: "http://www.google.com/s2/favicons?domain={{brand_cleansed._value}}.com"
+    # }
+  }
+
+  # dimension: brand_logo_small {
+  #   # type: string
+  #   sql: ${brand_cleansed} ;;
+  #   html: <img src = "https://logo.clearbit.com/{{brand_cleansed._value}}.com?size=25" /> ;;
+  # }
+
+  dimension: brand_logo_small {
+    # type: string
+    sql: ${brand_cleansed} ;;
+    html: <img src = "http://www.google.com/s2/favicons?domain={{brand_cleansed._value}}.com"/>;;
+  }
+
+  # dimension: comparison {
+  #   sql:
+  #   CASE
+  #   WHEN  ${products.brand} = ${product_select.brand} THEN '(1) '||${products.brand}
+  #   WHEN  ${products.category} = ${product_select.category} THEN '(2) Rest of '||${products.category}
+  #   WHEN  ${products.department} = ${product_select.department} THEN '(2) Rest of '||${products.department}
+  #   ELSE '(4) Rest Of Population'
+  #   END;;
+  # }
+
+  filter: brand_select {
+    suggest_dimension: brand
+  }
+
+  dimension: brand_comparison {
+    type: string
+    sql:
+    CASE
+    WHEN {% condition brand_select %} ${brand} {% endcondition %}
+    THEN ${brand}
+    ELSE 'Comparable brands'
+    END ;;
+    }
+  measure: count_brands {
+    type: count_distinct
+    sql: ${brand} ;;
   }
 }

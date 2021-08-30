@@ -29,6 +29,29 @@ view: inventory_items {
     sql: ${TABLE}.created_at ;;
   }
 
+  dimension: product_brand_cleansed {
+    hidden: yes
+    type: string
+    sql: REPLACE(REPLACE(${product_brand}," ",""),"'","") ;;
+  }
+
+  dimension: product_brand_logo {
+    type: string
+    sql: ${product_brand_cleansed} ;;
+    html: <img src = "https://logo.clearbit.com/{{product_brand_cleansed._value}}.com" /> ;;
+    link: {
+      label: "{{value}} website"
+      url: "http://www.{{product_brand_cleansed._rendered_value}}.com"
+      icon_url: "http://www.google.com/s2/favicons?domain={{product_brand_cleansed._value}}.com   "
+    }
+  }
+
+  dimension: product_brand_logo_small {
+    type: string
+    sql: ${product_brand_cleansed} ;;
+    html: <img src = "https://www.google.com/s2/favicons?domain={{product_brand_cleansed._value}}" /> ;;
+  }
+
   dimension: product_brand {
     type: string
     sql: ${TABLE}.product_brand ;;
@@ -43,7 +66,10 @@ view: inventory_items {
       url: "http://www.facebook.com/{{ value }}"
       icon_url: "https://www.google.com/s2/favicons?domain={{ value }}"
     }
+  # html: {{value}} - <img src = "http://www.google.com/s2/favicons?domain={{product_brand_cleansed._value}}.com" />   ;;
   }
+
+
 
   dimension: product_category {
     type: string

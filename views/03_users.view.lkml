@@ -36,9 +36,14 @@ view: users {
       month_name,
       quarter,
       year,
-      day_of_month
+      day_of_month,
     ]
     sql: ${TABLE}.created_at ;;
+  }
+
+  dimension: date_extended {
+    type: date
+    sql: ${created_date}||' '|| ${created_time} ;;
   }
 
   dimension: email {
@@ -106,22 +111,41 @@ view: users {
     sql: ${age} ;;
   }
 
-  dimension_group: since_signup {
-    type: duration
-    sql_start: ${created_date} ;;
-    sql_end: current_date() ;;
-  }
+  # dimension_group: since_signup {
+  #   type: duration
+  #   sql_start: ${created_date} ;;
+  #   sql_end: ${order_items.created_date} ;;
+  #   # sql_end: current_date() ;;
+  # }
 
-  dimension:  new_customer {
-    type: yesno
-    sql: ${days_since_signup} <= 90 ;;
-  }
+  # dimension:  new_customer {
+  #   type: yesno
+  #   sql: ${days_since_signup} <= 90 ;;
+  # }
 
   dimension: location {
     type: location
     sql_latitude: ${latitude} ;;
     sql_longitude: ${longitude} ;;
     drill_fields: [inventory_items.product_category, inventory_items.products_brand]
+  }
+
+  dimension_group: since_sign_up {
+    type: duration
+    sql_start: ${created_date} ;;
+    sql_end: CURRENT_DATE()  ;;
+  }
+
+  dimension: sign_up_cohort {
+    type: tier
+    style: integer
+    tiers: [12,24,36]
+    sql: ${months_since_sign_up} ;;
+  }
+
+  dimension: full_name {
+    type: string
+    sql: ${first_name} ||' '||${last_name} ;;
   }
 
 
