@@ -1,19 +1,20 @@
 # If necessary, uncomment the line below to include explore_source.
 # include: "fashionly_casestudy.model.lkml"
 
-view: user_facts {
+view: user_order_facts {
   derived_table: {
     explore_source: order_items {
       column: user_id {}
       column: order_count {}
-      column: total_gross_revenue {}
-      column: total_gross_margin {}
-      column: total_sales {}
+      column: lifetime_gross_revenue {field: order_items.total_gross_revenue}
+      column: lifetime_gross_margin {field: order_items.total_gross_margin}
+      column: lifetime_sales {field: order_items.total_sales}
       column: first_order {}
       column: latest_order {}
     }
   }
   dimension: user_id {
+    hidden: yes
     primary_key: yes
     type: number
   }
@@ -21,17 +22,17 @@ view: user_facts {
     type: number
     sql: COALESCE(${TABLE}.order_count,0) ;;
   }
-  dimension: total_gross_revenue {
+  dimension: lifetime_gross_revenue {
     description: "Total revenue from completed sales"
     value_format: "$#,##0.00"
     type: number
   }
-  dimension: total_gross_margin {
+  dimension: lifetime_gross_margin {
     description: "Total difference between the total revenue from completed sales and the cost of goods that were sold"
     value_format: "$#,##0.00"
     type: number
   }
-  dimension: total_sales {
+  dimension: lifetime_sales {
     description: "Total sales from items sold"
     value_format: "$#,##0.00"
     type: number
@@ -70,12 +71,20 @@ view: user_facts {
   }
 
   measure: count {
+    hidden: yes
     type: count
   }
 
 
 
 #--- USER ADDITIONS
+
+  dimension_group: customer_lifetime {
+    type: duration
+    intervals: [day,month,week]
+    sql_start: ${first_order_date} ;;
+    sql_end: ${latest_order_date} ;;
+  }
 
   dimension: lifetime_orders_group {
     type: tier
@@ -131,7 +140,7 @@ view: user_facts {
     type: tier
     tiers: [0,5,20,50,100,500,1000,10000]
     style: integer
-    sql: COALESCE(${total_gross_revenue},0);;
+    sql: COALESCE(${lifetime_gross_revenue},0);;
     value_format: "$0"
     drill_fields: [inventory_items.product_brand, inventory_items.product_category]
   }
@@ -143,7 +152,7 @@ view: user_facts {
     sql_end: current_date() ;;
   }
 
-  dimension: active_ind {
+  dimension: currently_active_customer {
     type: yesno
     sql: ${days_since_last_order} <= 90 ;;
     # drill_fields: [inventory_items.product_brand, inventory_items.product_category]
@@ -170,14 +179,14 @@ view: user_facts {
 
   measure: total_lifetime_revenue {
     type: sum
-    sql: ${total_gross_revenue} ;;
+    sql: ${lifetime_gross_revenue} ;;
     description: "Total lifetime revenue to slice by"
     value_format_name: usd
   }
 
   measure: average_lifetime_revenue {
     type:  average
-    sql: ${total_gross_revenue} ;;
+    sql: ${lifetime_gross_revenue} ;;
     description: "Average lifetime revenue to slice by"
     value_format_name: usd
   }
@@ -185,6 +194,11 @@ view: user_facts {
   measure: average_days_until_first_order {
     type: average
     sql: ${days_until_first_order} ;;
+  }
+
+  measure: average_lifetime_orders {
+    type: average
+    sql: ${lifetime_orders} ;;
   }
 
   measure: Count_Purchasers{

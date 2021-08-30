@@ -6,10 +6,10 @@ view: order_facts {
       column: order_amount {field: order_items.total_sales}
       column: order_cost {field: order_items.total_cost}
       column: user_id {}
-      column: created_date {}
+      column: created_at {field: order_items.created_raw}
       column: order_gross_margin {field: order_items.total_gross_margin}
       column: order_gross_revenue {field: order_items.total_gross_revenue}
-      derived_column: order_sequence_number {
+      derived_column: order_sequence {
         sql: RANK () OVER (PARTITION BY user_id ORDER BY created_at);;
       }
       derived_column: days_between_orders {
@@ -18,6 +18,7 @@ view: order_facts {
     }
   }
   dimension: order_id {
+    hidden: yes
     primary_key: yes
     type: number
   }
@@ -35,9 +36,11 @@ view: order_facts {
     type: number
   }
   dimension: user_id {
+    hidden: yes
     type: number
   }
-  dimension: created_date {
+  dimension: created_at {
+    hidden: yes
     type: date
   }
   dimension: order_gross_margin {
@@ -50,10 +53,19 @@ view: order_facts {
     value_format: "$#,##0.00"
     type: number
   }
-  dimension: order_sequence_number {
+  dimension: order_sequence {
     type: number
   }
   dimension: days_between_orders {
     type: number
+  }
+  dimension: is_first_purchase {
+    type:  yesno
+    sql: ${order_sequence} = 1 ;;
+    description: "Is this order a users first purchase?"
+  }
+  measure: average_items_per_order {
+    type: average
+    sql: ${items_in_order} ;;
   }
 }

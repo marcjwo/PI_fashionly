@@ -22,7 +22,6 @@ view: order_items {
       year,
       day_of_month
     ]
-    convert_tz: no
     sql: ${TABLE}.created_at ;;
   }
 
@@ -38,14 +37,13 @@ view: order_items {
       year,
       day_of_month
     ]
-    convert_tz: no
     datatype: date
     sql: ${TABLE}.delivered_at ;;
   }
 
   dimension: inventory_item_id {
     type: number
-    # hidden: yes
+    hidden: yes
     sql: ${TABLE}.inventory_item_id ;;
   }
 
@@ -86,7 +84,6 @@ view: order_items {
       year,
       day_of_month
     ]
-    convert_tz: no
     datatype: date
     sql: ${TABLE}.shipped_at ;;
   }
@@ -98,7 +95,7 @@ view: order_items {
 
   dimension: user_id {
     type: number
-    # hidden: yes
+    hidden: yes
     sql: ${TABLE}.user_id ;;
   }
 
@@ -114,9 +111,9 @@ view: order_items {
     sql: ${order_id} ;;
   }
 
-  dimension: logo {
-    sql: ${inventory_items.product_brand_logo} ;;
-  }
+  # dimension: logo {
+  #   sql: ${inventory_items.product_brand_logo} ;;
+  # }
 
   measure: total_sales {
     type: sum
@@ -124,8 +121,6 @@ view: order_items {
     description: "Total sales from items sold"
     value_format_name: usd
   }
-
-
 
   measure: average_sales_price {
     type: average
@@ -283,16 +278,17 @@ view: order_items {
   }
 
   dimension: mtd  {
+    hidden: yes
     type: yesno
     sql: ${created_day_of_month} <= EXTRACT(DAY FROM current_date()) ;;
   }
 
-  measure: distinct_order_count {
-    type: count_distinct
-    sql: ${order_id} ;;
-  }
+  # measure: distinct_order_count {
+  #   type: count_distinct
+  #   sql: ${order_id} ;;
+  # }
 
-  dimension_group: order_to_signup {
+  dimension_group: signup_to_order {
     type: duration
     intervals: [day,month,year]
     sql_start: ${users.created_date} ;;
@@ -324,11 +320,11 @@ view: order_items {
     sql_end: ${delivered_date} ;;
   }
 
-  measure: cumulative_lifetime_value {
-    type: running_total
-    sql: ${total_gross_revenue} ;;
-    value_format_name: usd
-  }
+  # measure: cumulative_lifetime_value {
+  #   type: running_total
+  #   sql: ${total_gross_revenue} ;;
+  #   value_format_name: usd
+  # }
 
 
   # measure: total_gross_revenue_this_brand {

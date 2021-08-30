@@ -1,4 +1,4 @@
-view: order_facts_addtl {
+view: order_facts_repurchase {
   derived_table: {
     sql: SELECT
       a.order_id,
