@@ -136,10 +136,15 @@ view: users {
     sql_end: CURRENT_DATE()  ;;
   }
 
+  dimension: is_new_customer {
+    type: yesno
+    sql: ${days_since_sign_up} <= 90 ;;
+  }
+
   dimension: sign_up_cohort {
     type: tier
     style: integer
-    tiers: [12,24,36]
+    tiers: [6,12,24,36]
     sql: ${months_since_sign_up} ;;
   }
 

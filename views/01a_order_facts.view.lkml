@@ -68,4 +68,9 @@ view: order_facts {
     type: average
     sql: ${items_in_order} ;;
   }
+  measure: average_days_between_orders {
+    type: average
+    sql: ${days_between_orders} ;;
+  }
+
 }

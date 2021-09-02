@@ -191,6 +191,13 @@ view: user_order_facts {
     value_format_name: usd
   }
 
+  measure: average_lifetime_sales{
+    type:  average
+    sql: ${lifetime_sales} ;;
+    description: "Average sales"
+    value_format_name: usd
+  }
+
   measure: average_days_until_first_order {
     type: average
     sql: ${days_until_first_order} ;;

@@ -111,19 +111,7 @@ view: products {
   #   END;;
   # }
 
-  filter: brand_select {
-    suggest_dimension: brand
-  }
 
-  dimension: brand_comparison {
-    type: string
-    sql:
-    CASE
-    WHEN {% condition brand_select %} ${brand} {% endcondition %}
-    THEN ${brand}
-    ELSE 'Comparable brands'
-    END ;;
-    }
   measure: count_brands {
     type: count_distinct
     sql: ${brand} ;;

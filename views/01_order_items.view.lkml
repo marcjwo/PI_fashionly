@@ -258,7 +258,7 @@ view: order_items {
 
   measure: average_spend_per_user {
     type: number
-    sql: ${total_sales}/${count} ;;
+    sql: ${total_gross_revenue}/${count} ;;
     value_format_name: usd
     description: "Average spend per user"
   }
@@ -340,6 +340,52 @@ view: order_items {
   #   value_format_name: usd
   # }
 
+  filter: select_granularity {
+    label: "Determine Drill Granularity"
+    default_value: "Brand Only"
+    type: string
+    suggestions: ["Brand only","Category only","Brand & Category"]
+  }
+
+  dimension: compare_me {
+    type: string
+    sql:
+    CASE
+    WHEN {% condition select_granularity %} "Brand only" {% endcondition %}
+    THEN ${comparison_brand}
+    WHEN {% condition select_granularity %} "Category only" {% endcondition %}
+    THEN ${comparison_category}
+    ELSE ${comparison_category_brand}
+    END;;
+  }
+
+  dimension: comparison_brand {
+    sql:
+    CASE
+    WHEN  ${products.brand} = ${product_selected.brand}
+    THEN '(1) '||${products.brand}
+    ELSE '(2) Other Brands'
+    END;;}
+
+  dimension: comparison_category {
+    sql:
+    CASE
+    WHEN  ${products.category} = ${product_selected.category}
+    THEN '(1) '||${products.category}
+    ELSE '(2) Other Categories'
+    END;;}
+
+  dimension: comparison_category_brand {
+    sql:
+    CASE
+    WHEN ${products.brand} = ${product_selected.brand} AND ${products.category} = ${product_selected.category}
+    THEN ${products.brand}||' - '||${products.category}
+    WHEN ${products.brand} = ${product_selected.brand}
+    THEN ${products.brand}||' - Other Categories'
+    WHEN ${products.category} = ${product_selected.category}
+    THEN ${products.category}||' - Rest of Population'
+    ELSE 'Rest of Population'
+    END;;}
 
   # ----- Sets of fields for drilling ------
   set: detail {
