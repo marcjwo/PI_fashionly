@@ -111,9 +111,9 @@ view: products {
   #   END;;
   # }
 
+  ###. SHARE OF WALLET
 
-  measure: count_brands {
-    type: count_distinct
-    sql: ${brand} ;;
-  }
+
+
+  ###
 }

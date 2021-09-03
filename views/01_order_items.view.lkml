@@ -124,7 +124,7 @@ view: order_items {
 
   measure: average_sales_price {
     type: average
-    sql: ${sale_price} ;;
+    sql: NULLIF(${sale_price}) ;;
     description: "Average sales price from items sold"
     value_format_name: usd
   }
@@ -320,31 +320,11 @@ view: order_items {
     sql_end: ${delivered_date} ;;
   }
 
-  # measure: cumulative_lifetime_value {
-  #   type: running_total
-  #   sql: ${total_gross_revenue} ;;
-  #   value_format_name: usd
-  # }
-
-
-  # measure: total_gross_revenue_this_brand {
-  #   type: sum
-  #   sql: ${total_gross_revenue} ;;
-  #   filters: [products.comparison: "(1)%"]
-  # }
-
-  # measure: brand_sales {
-  #   type: number
-  #   sql:
-  #   CASE WHEN ${products.brand_comparison} = "Comparable brands" THEN ${total_gross_revenue}/${products.count_brands} ELSE ${total_gross_revenue} END;;
-  #   value_format_name: usd
-  # }
-
   filter: select_granularity {
     label: "Determine Drill Granularity"
     default_value: "Brand Only"
     type: string
-    suggestions: ["Brand only","Category only","Brand & Category"]
+    suggestions: ["Brand only","Category only","Brand & Category Only","Brand & Category And All Other Categories"]
   }
 
   dimension: compare_me {
@@ -355,7 +335,9 @@ view: order_items {
     THEN ${comparison_brand}
     WHEN {% condition select_granularity %} "Category only" {% endcondition %}
     THEN ${comparison_category}
-    WHEN {% condition select_granularity %} "Brand & Category" {% endcondition %}
+    WHEN {% condition select_granularity %} "Brand & Category Only" {% endcondition %}
+    THEN ${comparison_category_brand_only}
+    WHEN {% condition select_granularity %} "Brand & Category And All Other Categories" {% endcondition %}
     THEN ${comparison_category_brand}
     END;;
   }
@@ -373,20 +355,44 @@ view: order_items {
     CASE
     WHEN  ${products.category} = ${product_selected.category}
     THEN '(1) '||${products.category}
-    ELSE '(2) Other Categories'
+    ELSE '(2) All Other Categories'
     END;;}
+
+  dimension: comparison_category_brand_only {
+    sql:
+    CASE
+    WHEN ${products.brand} = ${product_selected.brand} AND ${products.category} = ${product_selected.category}
+    THEN '(1) '||${products.brand}||' - '||${products.category}
+    WHEN ${products.category} = ${product_selected.category}
+    THEN '(2) Rest of Population - '||${products.category}
+  --   ELSE '(3) Everything Else'
+    END;;}
+
 
   dimension: comparison_category_brand {
     sql:
     CASE
     WHEN ${products.brand} = ${product_selected.brand} AND ${products.category} = ${product_selected.category}
-    THEN ${products.brand}||' - '||${products.category}
+    THEN '(1) '||${products.brand}||' - '||${products.category}
     WHEN ${products.brand} = ${product_selected.brand}
-    THEN ${products.brand}||' - Other Categories'
+    THEN '(2) '||${products.brand}||' - Other Categories'
     WHEN ${products.category} = ${product_selected.category}
-    THEN ${products.category}||' - Rest of Population'
-    ELSE 'Rest of Population'
+    THEN '(3) Rest of Population - '||${products.category}
+    ELSE '(4) Rest of Population - Other Categories'
     END;;}
+
+  measure: total_sales_this_brand {
+    type: sum
+    sql: ${sale_price};;
+    filters: [compare_me: "(2)%,(1)%"]
+    value_format_name: usd
+  }
+
+  measure: share_of_wallet_in_company {
+    type: number
+    sql: ${total_sales_this_brand}/${total_sales} ;;
+    value_format_name: percent_2
+  }
 
   # ----- Sets of fields for drilling ------
   set: detail {
