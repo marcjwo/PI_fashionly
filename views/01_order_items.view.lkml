@@ -355,7 +355,8 @@ view: order_items {
     THEN ${comparison_brand}
     WHEN {% condition select_granularity %} "Category only" {% endcondition %}
     THEN ${comparison_category}
-    ELSE ${comparison_category_brand}
+    WHEN {% condition select_granularity %} "Brand & Category" {% endcondition %}
+    THEN ${comparison_category_brand}
     END;;
   }
 
