@@ -41,11 +41,6 @@ view: users {
     sql: ${TABLE}.created_at ;;
   }
 
-  dimension: date_extended {
-    type: date
-    sql: ${created_date}||' '|| ${created_time} ;;
-  }
-
   dimension: email {
     type: string
     sql: ${TABLE}.email ;;
@@ -152,6 +147,11 @@ view: users {
     type: string
     sql: ${first_name} ||' '||${last_name} ;;
   }
+  # dimension: recency {
+  #   type: duration_month
+  #   sql_start: ${user_order_facts.latest_order_date}  ;;
+  #   sql_end: CURRENT_DATE() ;;
+  # }
 
 
 }

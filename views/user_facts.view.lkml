@@ -6,15 +6,14 @@ view: user_order_facts {
     explore_source: order_items {
       column: user_id {}
       column: order_count {}
-      column: lifetime_gross_revenue {field: order_items.total_gross_revenue}
-      column: lifetime_gross_margin {field: order_items.total_gross_margin}
-      column: lifetime_sales {field: order_items.total_sales}
+      column: total_gross_revenue {}
+      column: total_sales {}
       column: first_order {}
       column: latest_order {}
     }
   }
   dimension: user_id {
-    hidden: yes
+    # hidden: yes
     primary_key: yes
     type: number
   }
@@ -26,6 +25,7 @@ view: user_order_facts {
     description: "Total revenue from completed sales"
     value_format: "$#,##0.00"
     type: number
+    sql: ${TABLE}.total_gross_revenue ;;
   }
   dimension: lifetime_gross_margin {
     description: "Total difference between the total revenue from completed sales and the cost of goods that were sold"
@@ -36,6 +36,12 @@ view: user_order_facts {
     description: "Total sales from items sold"
     value_format: "$#,##0.00"
     type: number
+  }
+
+  dimension: recency_months {
+    type: duration_month
+    sql_start: ${latest_order_date} ;;
+    sql_end: CURRENT_DATE() ;;
   }
 
   dimension_group: first_order {
@@ -71,7 +77,6 @@ view: user_order_facts {
   }
 
   measure: count {
-    hidden: yes
     type: count
   }
 
@@ -182,6 +187,7 @@ view: user_order_facts {
     sql: ${lifetime_gross_revenue} ;;
     description: "Total lifetime revenue to slice by"
     value_format_name: usd
+
   }
 
   measure: average_lifetime_revenue {
@@ -203,6 +209,11 @@ view: user_order_facts {
     sql: ${days_until_first_order} ;;
   }
 
+  measure: average_days_since_last_order {
+    type: average
+    sql: ${days_since_last_order} ;;
+  }
+
   measure: average_lifetime_orders {
     type: average
     sql: ${lifetime_orders} ;;
@@ -213,4 +224,5 @@ view: user_order_facts {
     filters: [first_order_date: "-NULL"]
     description: "People that purchased"
   }
+
 }

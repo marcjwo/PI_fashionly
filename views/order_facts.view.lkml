@@ -15,6 +15,9 @@ view: order_facts {
       derived_column: days_between_orders {
         sql: IFNULL(DATE_DIFF(created_at,LAG (created_at,1) OVER (PARTITION BY user_id ORDER BY created_at),DAY),0);;
       }
+      derived_column: running_sales {
+        sql: SUM(order_amount) OVER (PARTITION BY user_id ORDER BY created_at) ;;
+      }
     }
   }
   dimension: order_id {
@@ -30,11 +33,11 @@ view: order_facts {
     value_format: "$#,##0.00"
     type: number
   }
-  dimension: order_cost {
-    description: "Total cost of items sold from inventory"
-    value_format: "$#,##0.00"
-    type: number
-  }
+  # dimension: order_cost {
+  #   description: "Total cost of items sold from inventory"
+  #   value_format: "$#,##0.00"
+  #   type: number
+  # }
   dimension: user_id {
     hidden: yes
     type: number
@@ -43,21 +46,25 @@ view: order_facts {
     hidden: yes
     type: date
   }
-  dimension: order_gross_margin {
-    description: "Total difference between the total revenue from completed sales and the cost of goods that were sold"
-    value_format: "$#,##0.00"
-    type: number
-  }
-  dimension: order_gross_revenue {
-    description: "Total revenue from completed sales"
-    value_format: "$#,##0.00"
-    type: number
-  }
+  # dimension: order_gross_margin {
+  #   description: "Total difference between the total revenue from completed sales and the cost of goods that were sold"
+  #   value_format: "$#,##0.00"
+  #   type: number
+  # }
+  # dimension: order_gross_revenue {
+  #   description: "Total revenue from completed sales"
+  #   value_format: "$#,##0.00"
+  #   type: number
+  # }
   dimension: order_sequence {
     type: number
   }
   dimension: days_between_orders {
     type: number
+  }
+  dimension: running_sales {
+    type: number
+    value_format_name: usd
   }
   dimension: is_first_purchase {
     type:  yesno
@@ -67,10 +74,20 @@ view: order_facts {
   measure: average_items_per_order {
     type: average
     sql: ${items_in_order} ;;
+    value_format_name: decimal_2
   }
   measure: average_days_between_orders {
     type: average
     sql: ${days_between_orders} ;;
+    value_format_name: decimal_2
+  }
+  measure: count {
+    type: count
+  }
+  measure: average_running_sales {
+    type: average
+    sql: ${running_sales} ;;
+    value_format_name: usd
   }
 
 }

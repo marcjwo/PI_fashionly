@@ -14,18 +14,18 @@ view: products {
     sql: ${TABLE}.brand ;;
     link: {
       label: "Google"
-      url: "http://www.google.com/search?q={{ value }}"
+      url: "http://www.google.com/search?q={{ value | encode_uri}}"
       icon_url: "https://www.google.com/s2/favicons?domain=google.com"
     }
-    # link: {
-    #   label: "Google Encode Uri"
-    #   url: "http://www.google.com/search?q={{ value | encode_uri}}"
-    #   icon_url: "https://www.google.com/s2/favicons?domain=google.com"
-    # }
     link: {
       label: "Facebook"
-      url: "http://www.facebook.com/{{ value }}"
+      url: "http://www.facebook.com/{{ value | encode_uri}}"
       icon_url: "https://www.google.com/s2/favicons?domain=facebook.com"
+    }
+    link: {
+      label: "{{value}} Analytics Dashboard"
+      url: "/dashboards-next/8?Created%20Date=30%20day&Brand={{ value | encode_uri }}"
+      icon_url: "http://www.looker.com/favicon.ico"
     }
   }
 
@@ -37,6 +37,12 @@ view: products {
   dimension: cost {
     type: number
     sql: ${TABLE}.cost ;;
+  }
+
+  dimension: brand_category {
+    hidden: yes
+    type: string
+    sql: ${TABLE}.brand||" - "||${TABLE}.category ;;
   }
 
   dimension: department {
@@ -73,12 +79,13 @@ view: products {
 #--- user additions
 
   dimension: brand_cleansed {
-    # hidden: yes
+    hidden: yes
     type: string
     sql: REPLACE(REPLACE(${brand}," ",""),"'","") ;;
   }
 
   dimension: brand_logo {
+    hidden: yes
     # type: string
     sql: ${brand_cleansed} ;;
     html: <img src = "https://logo.clearbit.com/{{brand_cleansed._value}}.com" /> ;;
@@ -96,6 +103,7 @@ view: products {
   # }
 
   dimension: brand_logo_small {
+    hidden: yes
     # type: string
     sql: ${brand_cleansed} ;;
     html: <img src = "http://www.google.com/s2/favicons?domain={{brand_cleansed._value}}.com"/>;;
@@ -113,7 +121,16 @@ view: products {
 
   ###. SHARE OF WALLET
 
+filter: brand_select {
+  suggest_dimension: brand
+}
 
-
-  ###
+dimension: brand_comparison {
+  sql:
+  CASE
+  WHEN {%condition brand_select%}${brand}{%endcondition%}
+  THEN ${brand}
+  ELSE 'Rest of Population'
+  END;;
+}
 }

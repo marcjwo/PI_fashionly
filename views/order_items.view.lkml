@@ -20,7 +20,8 @@ view: order_items {
       month_name,
       quarter,
       year,
-      day_of_month
+      day_of_month,
+      day_of_week
     ]
     sql: ${TABLE}.created_at ;;
   }
@@ -43,7 +44,7 @@ view: order_items {
 
   dimension: inventory_item_id {
     type: number
-    hidden: yes
+    # hidden: yes
     sql: ${TABLE}.inventory_item_id ;;
   }
 
@@ -95,7 +96,7 @@ view: order_items {
 
   dimension: user_id {
     type: number
-    hidden: yes
+    # hidden: yes
     sql: ${TABLE}.user_id ;;
   }
 
@@ -124,7 +125,7 @@ view: order_items {
 
   measure: average_sales_price {
     type: average
-    sql: NULLIF(${sale_price}) ;;
+    sql: NULLIF(${sale_price},0) ;;
     description: "Average sales price from items sold"
     value_format_name: usd
   }
@@ -161,7 +162,7 @@ view: order_items {
 
   measure: average_gross_margin {
     type: number
-    sql: (${total_gross_revenue} - ${total_cost})/${count} ;;
+    sql: nullif(${total_gross_margin},0)/nullif(${count},0) ;;
     description: "Average difference between the total revenue from completed sales and the cost of goods that were sold"
     value_format_name: usd
   }
@@ -283,14 +284,9 @@ view: order_items {
     sql: ${created_day_of_month} <= EXTRACT(DAY FROM current_date()) ;;
   }
 
-  # measure: distinct_order_count {
-  #   type: count_distinct
-  #   sql: ${order_id} ;;
-  # }
-
   dimension_group: signup_to_order {
     type: duration
-    intervals: [day,month,year]
+    intervals: [day, month]
     sql_start: ${users.created_date} ;;
     sql_end: ${created_date} ;;
   }
@@ -305,11 +301,13 @@ view: order_items {
 
   measure: first_order {
     type: date
+    hidden: yes
     sql: min(${created_raw});;
   }
 
   measure: latest_order {
     type: date
+    # hidden: yes
     sql: max(${created_raw}) ;;
   }
 
@@ -320,79 +318,178 @@ view: order_items {
     sql_end: ${delivered_date} ;;
   }
 
-  filter: select_granularity {
-    label: "Determine Drill Granularity"
-    default_value: "Brand Only"
-    type: string
-    suggestions: ["Brand only","Category only","Brand & Category Only","Brand & Category And All Other Categories"]
+  measure: average_shipping_time_in_days {
+    type: average
+    sql: ${days_shipping_time} ;;
+    value_format_name: decimal_2
   }
 
-  dimension: compare_me {
-    type: string
-    sql:
-    CASE
-    WHEN {% condition select_granularity %} "Brand only" {% endcondition %}
-    THEN ${comparison_brand}
-    WHEN {% condition select_granularity %} "Category only" {% endcondition %}
-    THEN ${comparison_category}
-    WHEN {% condition select_granularity %} "Brand & Category Only" {% endcondition %}
-    THEN ${comparison_category_brand_only}
-    WHEN {% condition select_granularity %} "Brand & Category And All Other Categories" {% endcondition %}
-    THEN ${comparison_category_brand}
-    END;;
+  # filter: select_granularity {
+  #   label: "Determine Drill Granularity"
+  #   default_value: "Brand Only"
+  #   type: string
+  #   suggestions: ["Brand only","Category only","Brand & Category Only","Brand & Category And All Other Categories"]
+  # }
+
+  # dimension: compare_me {
+  #   type: string
+  #   sql:
+  #   CASE
+  #   WHEN {% condition select_granularity %} "Brand only" {% endcondition %}
+  #   THEN ${comparison_brand}
+  #   WHEN {% condition select_granularity %} "Category only" {% endcondition %}
+  #   THEN ${comparison_category}
+  #   WHEN {% condition select_granularity %} "Brand & Category Only" {% endcondition %}
+  #   THEN ${comparison_category_brand_only}
+  #   WHEN {% condition select_granularity %} "Brand & Category And All Other Categories" {% endcondition %}
+  #   THEN ${comparison_category_brand}
+  #   END;;
+  # }
+
+  # dimension: comparison_brand {
+  #   sql:
+  #   CASE
+  #   WHEN  ${products.brand} = ${product_selected.brand}
+  #   THEN '(1) '||${products.brand}
+  #   ELSE '(2) Other Brands'
+  #   END;;}
+
+  # dimension: comparison_category {
+  #   sql:
+  #   CASE
+  #   WHEN  ${products.category} = ${product_selected.category}
+  #   THEN '(1) '||${products.category}
+  #   ELSE '(2) All Other Categories'
+  #   END;;}
+
+  # dimension: comparison_category_brand_only {
+  #   sql:
+  #   CASE
+  #   WHEN ${products.brand} = ${product_selected.brand} AND ${products.category} = ${product_selected.category}
+  #   THEN '(1) '||${products.brand}||' - '||${products.category}
+  #   WHEN ${products.category} = ${product_selected.category}
+  #   THEN '(2) Rest of Population - '||${products.category}
+  # --   ELSE '(3) Everything Else'
+  #   END;;}
+
+
+  # dimension: comparison_category_brand {
+  #   sql:
+  #   CASE
+  #   WHEN ${products.brand} = ${product_selected.brand} AND ${products.category} = ${product_selected.category}
+  #   THEN '(1) '||${products.brand}||' - '||${products.category}
+  #   WHEN ${products.brand} = ${product_selected.brand}
+  #   THEN '(2) '||${products.brand}||' - Other Categories'
+  #   WHEN ${products.category} = ${product_selected.category}
+  #   THEN '(3) Rest of Population - '||${products.category}
+  #   ELSE '(4) Rest of Population - Other Categories'
+  #   END;;}
+
+  # measure: total_sales_this_brand {
+  #   type: sum
+  #   sql: ${sale_price};;
+  #   filters: [compare_me: "(2)%,(1)%"]
+  #   value_format_name: usd
+  # }
+
+  # measure: share_of_wallet_in_company {
+  #   type: number
+  #   sql: ${total_sales_this_brand}/${total_sales} ;;
+  #   value_format_name: percent_2
+  # }
+
+  ### SHARE OF WALLET SECOND APPROACH
+
+# filter: brand_select {
+#   suggest_dimension: products.brand
+# }
+# filter: category_select {
+#   suggest_dimension: products.category
+# }
+
+# filter: brand_category_select {
+#   suggest_dimension: products.brand_category
+# }
+
+#   filter: select_granularity {
+#     label: "Determine Drill Granularity"
+#     default_value: "Brand Only"
+#     type: string
+#     suggestions: ["Brand only","Category only","Brand & Category"]
+#   }
+
+#   dimension: compare_me {
+#   type: string
+#   sql:
+#   CASE
+#   WHEN {% condition select_granularity %} "Brand only" {% endcondition %}
+#   THEN ${compare_brand}
+#   WHEN {% condition select_granularity %} "Category only" {% endcondition %}
+#   THEN ${compare_category}
+#   WHEN {% condition select_granularity %} "Brand & Category" {% endcondition %}
+#   THEN ${compare_brand_category}
+#   END;;
+# }
+
+# dimension: compare_brand {
+#   sql:
+#     CASE
+#     WHEN {% condition brand_select%} ${products.brand} {% endcondition %}
+#     THEN ${products.brand}
+#     ELSE "Rest of Population"
+#     END;;
+# }
+
+# dimension: compare_category {
+#   sql:
+#     CASE
+#     WHEN {% condition category_select%} ${products.category} {% endcondition %}
+#     THEN ${products.category}
+#     ELSE "Rest of Population"
+#     END;;
+# }
+
+# dimension: compare_brand_category {
+#   sql:
+#     CASE
+#     WHEN {% condition brand_category_select%} ${products.brand_category} {% endcondition %}
+#     THEN ${products.brand_category}
+#     ELSE "Rest of Population"
+#     END;;
+# }
+
+# ### Share of Wallet new try
+
+# dimension: compare_me {
+#   sql:
+#   CASE
+#   WHEN ${products.brand} = ${brand_selected.brand} AND ${products.category} = ${brand_selected.category}
+#   THEN '(1) '||${products.category}||' @ '||${products.brand}
+#   WHEN ${products.category} = ${brand_selected.category}
+#   THEN '(2) '||${products.category}||' @ Rest of Population'
+#   WHEN ${products.brand} = ${brand_selected.brand}
+#   THEN '(3) Other categories @ '||${products.brand}
+#   ELSE '(4) Other categories @ Rest of Population'
+#   END;;
+# }
+
+  measure: distinct_user_count {
+    type: count_distinct
+    sql: ${user_id} ;;
   }
 
-  dimension: comparison_brand {
-    sql:
-    CASE
-    WHEN  ${products.brand} = ${product_selected.brand}
-    THEN '(1) '||${products.brand}
-    ELSE '(2) Other Brands'
-    END;;}
-
-  dimension: comparison_category {
-    sql:
-    CASE
-    WHEN  ${products.category} = ${product_selected.category}
-    THEN '(1) '||${products.category}
-    ELSE '(2) All Other Categories'
-    END;;}
-
-  dimension: comparison_category_brand_only {
-    sql:
-    CASE
-    WHEN ${products.brand} = ${product_selected.brand} AND ${products.category} = ${product_selected.category}
-    THEN '(1) '||${products.brand}||' - '||${products.category}
-    WHEN ${products.category} = ${product_selected.category}
-    THEN '(2) Rest of Population - '||${products.category}
-  --   ELSE '(3) Everything Else'
-    END;;}
-
-
-  dimension: comparison_category_brand {
-    sql:
-    CASE
-    WHEN ${products.brand} = ${product_selected.brand} AND ${products.category} = ${product_selected.category}
-    THEN '(1) '||${products.brand}||' - '||${products.category}
-    WHEN ${products.brand} = ${product_selected.brand}
-    THEN '(2) '||${products.brand}||' - Other Categories'
-    WHEN ${products.category} = ${product_selected.category}
-    THEN '(3) Rest of Population - '||${products.category}
-    ELSE '(4) Rest of Population - Other Categories'
-    END;;}
-
-  measure: total_sales_this_brand {
-    type: sum
-    sql: ${sale_price};;
-    filters: [compare_me: "(2)%,(1)%"]
-    value_format_name: usd
+  dimension: age_at_purchase {
+    hidden: yes
+    type: duration_day
+    sql_start: ${users.created_date} ;;
+    sql_end: ${created_date} ;;
+  }
+  dimension: new_customer_order {
+    type: yesno
+    # hidden: yes
+    sql: ${age_at_purchase} < 91 ;;
   }
 
-  measure: share_of_wallet_in_company {
-    type: number
-    sql: ${total_sales_this_brand}/${total_sales} ;;
-    value_format_name: percent_2
-  }
 
   # ----- Sets of fields for drilling ------
   set: detail {

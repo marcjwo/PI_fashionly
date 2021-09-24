@@ -1,9 +1,9 @@
-view: product_selected {
+view: brand_selected {
   derived_table: {
     sql: SELECT
       *
-      FROM products
-      WHERE {%condition brand%} products.brand {%endcondition%} AND {%condition category%} products.category {%endcondition%}
+      FROM products p
+      WHERE {%condition brand%} p.brand {%endcondition%} AND {%condition category%} p.category {%endcondition%}
        ;;
   }
 
@@ -25,6 +25,11 @@ view: product_selected {
   dimension: category {
     type: string
     sql: ${TABLE}.category ;;
+  }
+
+  dimension: brand_category {
+    type: string
+    sql: ${TABLE}.brand||" - "${TABLE}.category ;;
   }
 
   dimension: name {
