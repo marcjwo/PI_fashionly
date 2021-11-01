@@ -143,6 +143,7 @@ view: order_items {
     filters: [status: "-Returned,-Cancelled"]
     description: "Total revenue from completed sales"
     value_format_name: usd
+    html: <span style="color:blue">{{rendered_value}}</a></b></span> ;;
   }
 
   measure: average_gross_revenue {
@@ -488,6 +489,36 @@ view: order_items {
     type: yesno
     # hidden: yes
     sql: ${age_at_purchase} < 91 ;;
+  }
+
+  # ----------------------
+
+  filter: select_status {
+    label: "Select Order Status"
+    suggest_dimension: status
+  }
+
+  parameter: select_status_param {
+    label: "Status Param"
+    type: unquoted
+    suggest_dimension: status
+  }
+
+  dimension: selected_Status {
+    type: yesno
+    sql: {% condition select_status %} ${status} {% endcondition %} ;;
+  }
+
+  measure: count_dist_orders {
+    type: count_distinct
+    sql: ${order_id} ;;
+    filters: [selected_Status: "Yes"]
+  }
+
+  measure: count_dist_orders_test {
+    type: count_distinct
+    sql: ${order_id} ;;
+    filters: [status: "%{% parameter select_status_param %}%"]
   }
 
 
